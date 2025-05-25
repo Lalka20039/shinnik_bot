@@ -11,12 +11,18 @@ from handlers.form import form_router
 from database.db import create_table
 
 async def on_startup(bot: Bot, webhook_url: str):
-    await bot.set_webhook(webhook_url)
-    logging.info(f"Webhook установлен: {webhook_url}")
+    try:
+        await bot.set_webhook(webhook_url)
+        logging.info(f"Webhook установлен: {webhook_url}")
+    except Exception as e:
+        logging.error(f"Ошибка при установке вебхука: {e}")
 
 async def on_shutdown(bot: Bot):
-    await bot.delete_webhook()
-    logging.info("Webhook удалён")
+    try:
+        await bot.delete_webhook()
+        logging.info("Webhook удалён")
+    except Exception as e:
+        logging.error(f"Ошибка при удалении вебхука: {e}")
 
 async def main():
     logging.basicConfig(
@@ -45,6 +51,7 @@ async def main():
     request_handler.register(app, path=webhook_path)
     setup_application(app, dp, bot=bot)
 
+    # Регистрация startup и shutdown
     dp.startup.register(lambda: on_startup(bot, webhook_url))
     dp.shutdown.register(lambda: on_shutdown(bot))
 
@@ -55,7 +62,7 @@ async def main():
     await site.start()
 
     try:
-        await asyncio.Event().wait()  # Держим приложение запущенным
+        await asyncio.Event().wait()
     finally:
         await runner.cleanup()
 
