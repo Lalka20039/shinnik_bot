@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+from functools import partial
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
@@ -51,9 +52,9 @@ async def main():
     request_handler.register(app, path=webhook_path)
     setup_application(app, dp, bot=bot)
 
-    # Регистрация startup и shutdown
-    dp.startup.register(lambda: on_startup(bot, webhook_url))
-    dp.shutdown.register(lambda: on_shutdown(bot))
+    # Регистрация startup и shutdown с использованием functools.partial
+    dp.startup.register(partial(on_startup, webhook_url=webhook_url))
+    dp.shutdown.register(partial(on_shutdown))
 
     # Запуск веб-сервера
     runner = web.AppRunner(app)
