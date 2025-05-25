@@ -2,8 +2,8 @@ import os
 from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
 
-TOKEN = os.getenv ('8073072636:AAElMwu7DAySwJ6OiZZ2yC0Osb5istFi7vY')
-DEFAULT_PROPERTIES = DefaultBotProperties(parse_mode=ParseMode.HTML)
+TOKEN = os.getenv ("8073072636:AAElMwu7DAySwJ6OiZZ2yC0Osb5istFi7vY")
+DEFAULT_PROPERTIES = {"parse_mode=ParseMode.HTML"}
 DATABASE = 'shinnik.db'
 
 
