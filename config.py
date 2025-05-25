@@ -2,18 +2,15 @@ import os
 from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
 
-TOKEN = os.getenv ("8073072636:AAElMwu7DAySwJ6OiZZ2yC0Osb5istFi7vY")
-DEFAULT_PROPERTIES = {"parse_mode=ParseMode.HTML"}
-DATABASE = 'shinnik.db'
+# Получение токена из переменной окружения
+TOKEN = os.getenv("BOT_TOKEN")
 
+# Настройки бота
+DEFAULT_PROPERTIES = DefaultBotProperties(parse_mode=ParseMode.HTML)
 
-import asyncio
-import logging
-import sqlite3
-from datetime import datetime
+# Путь к базе данных
+DATABASE_PATH = "database/shinnik.db"
 
-from aiogram import Bot, Dispatcher
-from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.fsm.state import StatesGroup, State
-from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
+# Проверка токена
+if not TOKEN or not isinstance(TOKEN, str):
+    raise ValueError("BOT_TOKEN не установлен или не является строкой. Установите переменную окружения BOT_TOKEN.")
