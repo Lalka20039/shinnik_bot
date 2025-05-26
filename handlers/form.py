@@ -4,7 +4,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 import logging
 import re
-from datetime import datetime  # Для времени заказа
+from datetime import datetime
 
 from keyboards.menu import main_menu
 from keyboards.catalog import category_keyboard, car_tires, truck_tires, agro_tires
@@ -21,19 +21,40 @@ class OrderForm(StatesGroup):
 
 VALID_MODELS = {
     "Легковые шины": [
-        "Легковая шина Forward Safari 510",
         "Легковая шина Кама Breeze 185/65R14",
-        "Легковая шина Cordiant Comfort 2 205/55R16"
+        "Легковая шина Кама Grant 175/70R13",
+        "Легковая шина Nortec LT 600 205/75R16C",
+        "Легковая шина Алтайшина Forward Professional 219 225/75R16C",
+        "Легковая шина Kapsen PracticalMax H/P 215/65R16",
+        "Легковая шина Taitong HS268 235/65R17",
+        "Легковая шина Omskshina Я-467 185/75R16C",
+        "Легковая шина Кама Euro-129 195/65R15",
+        "Легковая шина Nortec WT 580 205/70R15C",
+        "Легковая шина Алтайшина Forward Dinamic 232 205/65R15"
     ],
     "Грузовые шины": [
-        "Грузовая шина Кама-310 12.00R20",
-        "Грузовая шина Кама 10.00R20 И-281 У-4",
-        "Грузовая шина Кама NT 202 215/75R17.5"
+        "Грузовая шина Кама NR 201 10.00R20",
+        "Грузовая шина Кама NT 202 215/75R17.5",
+        "Грузовая шина Nortec TR 1260 12.00R20",
+        "Грузовая шина Алтайшина ОИ-25 14.00-20",
+        "Грузовая шина Kapsen HS918 315/80R22.5",
+        "Грузовая шина Taitong TD168 295/75R22.5",
+        "Грузовая шина Omskshina ИД-304 11.00R22.5",
+        "Грузовая шина Кама NU 301 315/70R22.5",
+        "Грузовая шина Nortec TC 600 385/65R22.5",
+        "Грузовая шина Алтайшина О-40БМ 12.00R20"
     ],
     "Сельхозшины": [
-        "Сельхозшина Кама 15.5R38 Ф-2А",
-        "Сельхозшина Алтайшина 15.5-38 Ф-2АД",
-        "Сельхозшина Волтаир Я-324 16.9R38"
+        "Сельхозшина Кама Ф-2А 15.5R38",
+        "Сельхозшина Алтайшина Я-324 16.9R38",
+        "Сельхозшина Nortec TA 02 13.6R38",
+        "Сельхозшина Omskshina Ф-35 11.2R42",
+        "Сельхозшина Кама Я-183 9.00-16",
+        "Сельхозшина Алтайшина Ф-44 15.0/70-18",
+        "Сельхозшина Nortec H-05 7.50-20",
+        "Сельхозшина Kapsen AgriPro 12.4R28",
+        "Сельхозшина Taitong AgriKing 13.6R24",
+        "Сельхозшина Omskshina Ф-2АД 15.5-38"
     ]
 }
 
@@ -79,8 +100,7 @@ async def get_category(message: Message, state: FSMContext):
         await message.answer("Выберите модель грузовых шин:", reply_markup=truck_tires)
     elif message.text == "Сельхозшины":
         await message.answer("Выберите модель сельхозшин:", reply_markup=agro_tires)
-    
-    await state.set_state(OrderForm.model)
+        await state.set_state(OrderForm.model)
 
 @form_router.message(OrderForm.model, F.text.in_(sum(VALID_MODELS.values(), [])))
 async def get_model(message: Message, state: FSMContext, bot: Bot):
@@ -105,9 +125,9 @@ async def get_model(message: Message, state: FSMContext, bot: Bot):
         )
         logging.info(f"Заказ сохранён: user_id={message.from_user.id}, model={data['model']}")
 
-        # Отправка уведомления менеджеру
         order_message = (
-            f"📜 Новая заявка!\n\n"f"Имя: {data['name']}\n"
+            f"📜 Новая заявка!\n\n"
+            f"Имя: {data['name']}\n"
             f"Телефон: {data['phone']}\n"
             f"Категория: {data['category']}\n"
             f"Модель: {data['model']}\n"
@@ -116,7 +136,6 @@ async def get_model(message: Message, state: FSMContext, bot: Bot):
         await bot.send_message(chat_id=MANAGER_CHAT_ID, text=order_message)
         logging.info(f"Уведомление отправлено в чат {MANAGER_CHAT_ID}")
 
-        # Подтверждение пользователю
         await message.answer(
             f"Спасибо за заказ!\n\n"
             f"Имя: {data['name']}\n"
@@ -130,6 +149,17 @@ async def get_model(message: Message, state: FSMContext, bot: Bot):
         logging.error(f"Ошибка при сохранении заказа или отправке уведомления: {e}")
         await message.answer("Произошла ошибка при оформлении заказа. Попробуйте снова.")
         await state.clear()
+
+@form_router.message(OrderForm.model, F.text == "Не нашли нужную вам шину?")
+async def handle_not_found(message: Message, state: FSMContext):
+    await message.answer(
+        "Не нашли подходящую шину? Свяжитесь с нами, и мы подберём нужную вам модель!\n\n"
+        "📞 Телефон: +7 (923) 718-91-49\n"
+        "📧 Email: dessi@mail.ru\n"
+        "📍 Адрес: ул. Попова, 183, Барнаул",
+        reply_markup=main_menu
+    )
+    await state.clear()
 
 @form_router.message(OrderForm.model, F.text == "⬅️ Назад к категориям")
 async def back_to_category(message: Message, state: FSMContext):
@@ -150,12 +180,3 @@ async def cancel_order_in_model_state(message: Message, state: FSMContext):
 async def invalid_model(message: Message, state: FSMContext):
     logging.warning(f"Недопустимый ввод в состоянии модели: {message.text}")
     await message.answer("Пожалуйста, выберите модель из предложенного списка.")
-
-@form_router.message(F.text.lower() == "отмена")
-async def cancel_order(message: Message, state: FSMContext):
-    logging.info(f"Пользователь {message.from_user.id} отменил заказ.")
-    await state.clear()
-    await message.answer(
-        "Оформление заказа отменено. Хотите начать заново?",
-        reply_markup=main_menu
-    )
