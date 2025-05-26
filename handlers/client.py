@@ -22,9 +22,9 @@ async def start_cmd(message: Message, state: FSMContext):
 async def contacts_command(message: Message):
     await message.answer(
         "Наши контакты:\n"
-        "Телефон: +7 (923) 718-91-49\n"
-        "Email: dessi@mail.ru\n"
-        "Адрес: ул. Попова, 183, Барнаул",
+        "📞 Телефон: +7 (923) 718-91-49\n"
+        "📧 Email: dessi@mail.ru\n"
+        "📍 Адрес: ул. Попова, 183, Барнаул",
         reply_markup=main_menu
     )
 
@@ -49,23 +49,33 @@ async def about_company(message: Message):
 async def contacts(message: Message):
     await message.answer(
         "Наши контакты:\n"
-        "Телефон: +7 (923) 718-91-49\n"
-        "Email: dessi@mail.ru\n"
-        "Адрес: ул. Попова, 183, Барнаул",
+        "📞 Телефон: +7 (923) 718-91-49\n"
+        "📧 Email: dessi@mail.ru\n"
+        "📍 Адрес: ул. Попова, 183, Барнаул",
         reply_markup=main_menu
     )
 
+@router.message(F.text == "🛠 Категории шин")
+async def show_categories(message: Message):
+    await message.answer("Выберите категорию шин:", reply_markup=category_menu)
+
 @router.message(F.text == "🚗 Легковые")
-async def car_category(message: Message):
-    await message.answer("Выберите товар:", reply_markup=car_tires)
+async def car_category(message: Message, state: FSMContext):
+    await state.update_data(category="Легковые шины")
+    await message.answer("Выберите модель легковых шин:", reply_markup=car_tires)
+    await state.set_state(OrderForm.model)
 
 @router.message(F.text == "🚛 Грузовые")
-async def truck_category(message: Message):
-    await message.answer("Выберите товар:", reply_markup=truck_tires)
+async def truck_category(message: Message, state: FSMContext):
+    await state.update_data(category="Грузовые шины")
+    await message.answer("Выберите модель грузовых шин:", reply_markup=truck_tires)
+    await state.set_state(OrderForm.model)
 
 @router.message(F.text == "🚜 Сельхозтехника")
-async def agro_category(message: Message):
-    await message.answer("Выберите товар:", reply_markup=agro_tires)
+async def agro_category(message: Message, state: FSMContext):
+    await state.update_data(category="Сельхозшины")
+    await message.answer("Выберите модель сельхозшин:", reply_markup=agro_tires)
+    await state.set_state(OrderForm.model)
 
 @router.message(F.text == "⬅️ Назад")
 async def back_to_main(message: Message):
