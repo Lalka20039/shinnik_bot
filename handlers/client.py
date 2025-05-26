@@ -1,7 +1,8 @@
 from aiogram import Router, F
 from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
-from aiogram.filters import CommandStart
+from aiogram.filters import Command, CommandStart
+from handlers.form import OrderForm  # Импортируем OrderForm для /заявка
 
 from keyboards.menu import main_menu, category_menu
 from keyboards.catalog import car_tires, truck_tires, agro_tires
@@ -16,6 +17,21 @@ async def start_cmd(message: Message, state: FSMContext):
         "Вы можете оформить заказ или узнать информацию.",
         reply_markup=main_menu
     )
+
+@router.message(Command("контакты"))
+async def contacts_command(message: Message):
+    await message.answer(
+        "Наши контакты:\n"
+        "Телефон: +7 (923) 718-91-49\n"
+        "Email: info@shinnik.com\n"
+        "Адрес: ул. Попова, 183, Барнаул",
+        reply_markup=main_menu
+    )
+
+@router.message(Command("заявка"))
+async def start_order(message: Message, state: FSMContext):
+    await message.answer("Введите ваше имя:")
+    await state.set_state(OrderForm.name)
 
 @router.message(F.text == "ℹ️ О компании")
 async def about_company(message: Message):
@@ -52,7 +68,3 @@ async def back_to_main(message: Message):
 @router.message(F.text == "⬅️ Назад к категориям")
 async def back_to_categories(message: Message):
     await message.answer("Выберите категорию шин:", reply_markup=category_menu)
-
-
-
-
