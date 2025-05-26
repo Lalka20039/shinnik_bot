@@ -6,7 +6,7 @@ import logging
 import re
 from datetime import datetime
 
-from keyboards.menu import main_menu, category_menu  # Изменён импорт
+from keyboards.menu import main_menu, category_menu
 from keyboards.catalog import car_tires, truck_tires, agro_tires
 from database.db import insert_order
 from config import MANAGER_CHAT_ID
@@ -38,7 +38,7 @@ VALID_MODELS = {
         "Грузовая шина Nortec TR 1260 12.00R20",
         "Грузовая шина Алтайшина ОИ-25 14.00-20",
         "Грузовая шина Kapsen HS918 315/80R22.5",
-        "Грузовая шина Taitong TD168 295/75R22.5",
+        "Грузовая шина Taitong TD 168 295/75R22.5",
         "Грузовая шина Omskshina ИД-304 11.00R22.5",
         "Грузовая шина Кама NU 301 315/70R22.5",
         "Грузовая шина Nortec TC 600 385/65R22.5",
@@ -116,8 +116,8 @@ async def get_model(message: Message, state: FSMContext, bot: Bot):
     category = data.get("category")
     
     if message.text not in VALID_MODELS.get(category, []):
-        logging.warning(f"Выберите модель из предложенного списка: {message.text} для категории {category}")
-        await message.answer("Пожалуйста, выберите модель из списка предложенного.")
+        logging.warning(f"Выбрана некорректная модель: {message.text} для категории {category}")
+        await message.answer("Пожалуйста, выберите модель из предложенного списка.")
         return
     
     await state.update_data(model=message.text)
@@ -136,12 +136,12 @@ async def get_model(message: Message, state: FSMContext, bot: Bot):
         order_message = (
             f"📜 Новая заявка!\n\n"
             f"Имя: {data['name']}\n"
-            f"Телефон: {data['phone']}\n"            
+            f"Телефон: {data['phone']}\n"
             f"Категория: {data['category']}\n"
             f"Модель: {data['model']}\n"
             f"Время: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
         )
-        await bot.send_message(chat_id=order_message,text=order_message)
+        await bot.send_message(chat_id=MANAGER_CHAT_ID, text=order_message)
         logging.info(f"Уведомление отправлено в чат {MANAGER_CHAT_ID}")
 
         await message.answer(
@@ -169,7 +169,7 @@ async def handle_not_found(message: Message, state: FSMContext):
     )
     await state.clear()
 
-@form_router.message(OrderForm.model, F.text == "⬅ Назад к категориям")
+@form_router.message(OrderForm.model, F.text == "⬅️ Назад к категориям")
 async def back_to_category(message: Message, state: FSMContext):
     await state.update_data(category=None)
     await message.answer("Выберите категорию шин:", reply_markup=category_menu)
