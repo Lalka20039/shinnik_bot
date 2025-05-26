@@ -1,13 +1,15 @@
-from aiogram import Router, F
+from aiogram import Router, F, Bot
 from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 import logging
 import re
+from datetime import datetime  # Для времени заказа
 
 from keyboards.menu import main_menu
 from keyboards.catalog import category_keyboard, car_tires, truck_tires, agro_tires
 from database.db import insert_order
+from config import MANAGER_CHAT_ID
 
 form_router = Router()
 
@@ -17,7 +19,6 @@ class OrderForm(StatesGroup):
     category = State()
     model = State()
 
-# Список допустимых моделей шин для каждой категории
 VALID_MODELS = {
     "Легковые шины": [
         "Легковая шина Forward Safari 510",
@@ -43,18 +44,15 @@ async def start_order(message: Message, state: FSMContext):
 
 @form_router.message(OrderForm.name)
 async def get_name(message: Message, state: FSMContext):
-    await state.update_data(name=message.text)
+    await state.update_data(name=message.text.strip())
     await message.answer("Введите ваш номер телефона (например, +79991234567):")
     await state.set_state(OrderForm.phone)
 
 @form_router.message(OrderForm.phone)
 async def get_phone(message: Message, state: FSMContext):
     phone = message.text.strip()
-    
-    # Удаляем пробелы, дефисы, скобки и другие символы, оставляя только цифры и "+"
     cleaned_phone = re.sub(r'[^\d+]', '', phone)
     
-    # Проверяем формат номера: начинается с "+" и содержит 10–14 цифр
     if not re.match(r'^\+\d{10,14}$', cleaned_phone):
         logging.warning(f"Некорректный номер телефона: {phone} (очищено: {cleaned_phone})")
         await message.answer(
@@ -70,7 +68,7 @@ async def get_phone(message: Message, state: FSMContext):
 @form_router.message(OrderForm.category)
 async def get_category(message: Message, state: FSMContext):
     if message.text not in ["Легковые шины", "Грузовые шины", "Сельхозшины"]:
-        await message.answer("Неверная категория. Пожалуйста, выберите одну из предложенных категорий.")
+        await message.answer("Пожалуйста, выберите категорию из предложенных.")
         return
     
     await state.update_data(category=message.text)
@@ -85,17 +83,15 @@ async def get_category(message: Message, state: FSMContext):
     await state.set_state(OrderForm.model)
 
 @form_router.message(OrderForm.model, F.text.in_(sum(VALID_MODELS.values(), [])))
-async def get_model(message: Message, state: FSMContext):
+async def get_model(message: Message, state: FSMContext, bot: Bot):
     data = await state.get_data()
     category = data.get("category")
     
-    # Проверяем, что модель соответствует выбранной категории
     if message.text not in VALID_MODELS.get(category, []):
         logging.warning(f"Выбрана некорректная модель: {message.text} для категории {category}")
         await message.answer("Пожалуйста, выберите модель из предложенного списка.")
         return
     
-    logging.info(f"Выбрана модель: {message.text} для категории {category}")
     await state.update_data(model=message.text)
     data = await state.get_data()
 
@@ -107,27 +103,37 @@ async def get_model(message: Message, state: FSMContext):
             vehicle_type=data["category"],
             model=data["model"]
         )
-        logging.info(f"Заказ сохранён: user_id={message.from_user.id}, model={message.text}")
+        logging.info(f"Заказ сохранён: user_id={message.from_user.id}, model={data['model']}")
+
+        # Отправка уведомления менеджеру
+        order_message = (
+            f"📜 Новая заявка!\n\n"f"Имя: {data['name']}\n"
+            f"Телефон: {data['phone']}\n"
+            f"Категория: {data['category']}\n"
+            f"Модель: {data['model']}\n"
+            f"Время: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        )
+        await bot.send_message(chat_id=MANAGER_CHAT_ID, text=order_message)
+        logging.info(f"Уведомление отправлено в чат {MANAGER_CHAT_ID}")
+
+        # Подтверждение пользователю
+        await message.answer(
+            f"Спасибо за заказ!\n\n"
+            f"Имя: {data['name']}\n"
+            f"Телефон: {data['phone']}\n"
+            f"Категория: {data['category']}\n"
+            f"Модель: {data['model']}",
+            reply_markup=main_menu
+        )
+        await state.clear()
     except Exception as e:
-        logging.error(f"Ошибка при сохранении заказа: {e}")
+        logging.error(f"Ошибка при сохранении заказа или отправке уведомления: {e}")
         await message.answer("Произошла ошибка при оформлении заказа. Попробуйте снова.")
         await state.clear()
-        return
-
-    await message.answer(
-        f"Спасибо за заказ!\n\n"
-        f"Имя: {data['name']}\n"
-        f"Телефон: {data['phone']}\n"
-        f"Категория: {data['category']}\n"
-        f"Модель: {data['model']}",
-        reply_markup=main_menu
-    )
-
-    await state.clear()
 
 @form_router.message(OrderForm.model, F.text == "⬅️ Назад к категориям")
 async def back_to_category(message: Message, state: FSMContext):
-    await state.update_data(category=None)  # Очищаем категорию
+    await state.update_data(category=None)
     await message.answer("Выберите категорию шин:", reply_markup=category_keyboard)
     await state.set_state(OrderForm.category)
 
